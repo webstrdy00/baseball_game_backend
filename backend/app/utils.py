@@ -10,3 +10,16 @@ def generate_random_number(digits: int = 3) -> str:
     # 0으로 시작해도 상관없다면 그대로 join, 
     # 만약 첫 자리가 0이면 안 된다고 하면 추가 로직을 넣을 수 있음.
     return "".join(numbers) 
+
+def calculate_strike_ball(answer: str, guess: str) -> tuple[int, int]:
+    """
+    answer와 guess를 비교해 스트라이크/볼 개수를 계산한다.
+    """
+    strike = 0
+    ball = 0
+    for i in range(len(guess)):
+        if guess[i] == answer[i]:
+            strike += 1
+        elif guess[i] in answer:
+            ball += 1
+    return strike, ball

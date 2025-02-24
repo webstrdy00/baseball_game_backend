@@ -8,3 +8,14 @@ class CreateGameRequest(BaseModel):
 class CreateGameResponse(BaseModel):
     game_id: int
     message: str    
+
+class GuessRequest(BaseModel):
+    guess: str
+
+class GuessResponse(BaseModel):
+    strike: int
+    ball: int
+    attempts_used: int
+    attempts_left: int
+    status: str
+    message: str
