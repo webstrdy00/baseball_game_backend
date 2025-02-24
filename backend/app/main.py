@@ -1,8 +1,12 @@
 # app/main.py
 from fastapi import FastAPI
+from .database import Base, engine
+from .routers import game
+
+# DB 테이블 생성
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-@app.get("/")
-async def read_root():
-    return {"message": "숫자 야구 게임 백엔드 서버 입니다."}
+# 라우터 등록
+app.include_router(game.router, tags=["games"])
