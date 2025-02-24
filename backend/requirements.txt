@@ -1,0 +1,5 @@
+python -m venv venv
+venv\Scripts\activate
+pip install fastapi uvicorn
+pip install sqlalchemy asyncpg
+pip install python-dotenv
