@@ -12,3 +12,7 @@ def create_game(game_req: schemas.CreateGameRequest, db: Session = Depends(get_d
 @router.post("/games/{game_id}/guesses", response_model=schemas.GuessResponse)
 def make_guess(game_id: int, guess_req: schemas.GuessRequest, db: Session = Depends(get_db)):
     return crud.game.make_guess(db=db, game_id=game_id, guess_req=guess_req)
+
+@router.get("/games/{game_id}", response_model=schemas.GameStatusResponse)
+def get_game_status(game_id: int, db: Session = Depends(get_db)):
+    return crud.game.get_game_status(db=db, game_id=game_id)

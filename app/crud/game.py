@@ -89,3 +89,37 @@ def delete_game_history(db: Session, game_id: int):
     """
     db.query(models.Guess).filter(models.Guess.game_id == game_id).delete()
     db.commit()
+
+def get_game_status(db: Session, game_id: int):
+    # 게임 조회
+    game = db.query(models.Game).filter(models.Game.id == game_id).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="게임을 찾을 수 없습니다.")
+    
+    # Guess 테이블에서 해당 게임의 추측 내역을 생성 시각 순으로 조회
+    guess_history = (
+        db.query(models.Guess)
+        .filter(models.Guess.game_id == game_id)
+        .order_by(models.Guess.created_at.asc())
+        .all()
+    )
+    
+    history = []
+    for guess in guess_history:
+        history.append({
+            "guess": guess.guess,
+            "strike": guess.strike,
+            "ball": guess.ball,
+            "created_at": guess.created_at
+        })
+    
+    # 진행 중인 경우 남은 시도 횟수를 계산
+    attempts_left = MAX_ATTEMPTS - game.attempts_used if game.status == "ongoing" else 0
+
+    return schemas.GameStatusResponse(
+        game_id=game.id,
+        attempts_used=game.attempts_used,
+        attempts_left=attempts_left,
+        status=game.status,
+        history=history
+    )
