@@ -4,11 +4,20 @@ from .. import models, schemas, utils
 
 MAX_ATTEMPTS = 10  # 최대 시도 횟수
 
-def create_game(db: Session, game_req: schemas.CreateGameRequest):
+"""
+새 게임 생성
+    
+Args:
+    db: 데이터베이스 세션
+    game_req: 게임 생성 요청 데이터
+    user: 로그인한 사용자 (선택적)
+"""
+def create_game(db: Session, game_req: schemas.CreateGameRequest, user=None):
     random_num = utils.generate_random_number(game_req.digits)
     new_game = models.Game(
         random_number=random_num,
-        digits=game_req.digits
+        digits=game_req.digits,
+        user_id=user.id if user else None  # 로그인한 경우에만 user_id 설정
     )
     db.add(new_game)
     db.commit()
@@ -19,6 +28,18 @@ def create_game(db: Session, game_req: schemas.CreateGameRequest):
         message=f"새로운 {new_game.digits}자리 숫자 야구 게임이 시작되었습니다."
     )
 
+"""
+게임에 숫자 추측
+    
+1. 게임 조회
+2. 게임 상태 확인
+3. 추측한 숫자의 자릿수 검증
+4. 스트라이크/볼 계산
+5. 시도 횟수 증가
+6. Guess 레코드 생성
+7. 게임 상태 업데이트
+8. 응답 정보 구성
+"""
 def make_guess(db: Session, game_id: int, guess_req: schemas.GuessRequest):
     # 1. 게임 조회
     game = db.query(models.Game).filter(models.Game.id == game_id).first()
@@ -90,6 +111,13 @@ def delete_game_history(db: Session, game_id: int):
     db.query(models.Guess).filter(models.Guess.game_id == game_id).delete()
     db.commit()
 
+"""
+게임 상태 조회
+    
+1. 게임 조회
+2. 추측 내역 조회
+3. 남은 시도 횟수 계산
+"""
 def get_game_status(db: Session, game_id: int):
     # 게임 조회
     game = db.query(models.Game).filter(models.Game.id == game_id).first()
@@ -124,6 +152,13 @@ def get_game_status(db: Session, game_id: int):
         history=history
     )
 
+"""
+게임 포기 기능
+    
+1. 게임 조회
+2. 이미 종료된 게임인지 확인
+3. 게임 상태를 포기로 업데이트
+"""
 def forfeit_game(db: Session, game_id: int):
     # 게임 조회
     game = db.query(models.Game).filter(models.Game.id == game_id).first()
