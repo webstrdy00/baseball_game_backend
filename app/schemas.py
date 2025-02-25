@@ -39,3 +39,10 @@ class GameStatusResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+class ForfeitResponse(BaseModel):
+    message: str
+    status: str  # 예: "forfeited"
+
+    class Config:
+        orm_mode = True

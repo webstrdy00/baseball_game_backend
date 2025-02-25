@@ -123,3 +123,23 @@ def get_game_status(db: Session, game_id: int):
         status=game.status,
         history=history
     )
+
+def forfeit_game(db: Session, game_id: int):
+    # 게임 조회
+    game = db.query(models.Game).filter(models.Game.id == game_id).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="게임을 찾을 수 없습니다.")
+    
+    # 이미 종료된 게임인 경우 에러 처리
+    if game.status != "ongoing":
+        raise HTTPException(status_code=400, detail=f"이미 종료된 게임입니다. 현재 상태: {game.status}")
+    
+    # 게임 상태를 포기("forfeited")로 업데이트
+    game.status = "forfeited"
+    db.commit()
+    db.refresh(game)
+    
+    return schemas.ForfeitResponse(
+        message="게임이 포기되었습니다.",
+        status=game.status
+    )

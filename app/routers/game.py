@@ -16,3 +16,7 @@ def make_guess(game_id: int, guess_req: schemas.GuessRequest, db: Session = Depe
 @router.get("/games/{game_id}", response_model=schemas.GameStatusResponse)
 def get_game_status(game_id: int, db: Session = Depends(get_db)):
     return crud.game.get_game_status(db=db, game_id=game_id)
+
+@router.delete("/games/{game_id}", response_model=schemas.ForfeitResponse)
+def forfeit_game(game_id: int, db: Session = Depends(get_db)):
+    return crud.game.forfeit_game(db=db, game_id=game_id)
