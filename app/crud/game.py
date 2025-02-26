@@ -144,12 +144,17 @@ def get_game_status(db: Session, game_id: int):
     # 진행 중인 경우 남은 시도 횟수를 계산
     attempts_left = MAX_ATTEMPTS - game.attempts_used if game.status == "ongoing" else 0
 
+    answer = None
+    if game.status != "ongoing":
+        answer = game.random_number
+
     return schemas.GameStatusResponse(
         game_id=game.id,
         attempts_used=game.attempts_used,
         attempts_left=attempts_left,
         status=game.status,
-        history=history
+        history=history,
+        answer=answer
     )
 
 """
