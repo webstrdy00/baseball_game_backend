@@ -44,14 +44,14 @@ def create_user(db: Session, user: schemas.UserCreate):
     return db_user
 
 """
-사용자 인증
+사용자 인증 - 이메일 기반으로 변경
     
-1. 사용자명으로 사용자 조회
+1. 이메일로 사용자 조회
 2. 비밀번호 검증
 3. 성공 시 사용자 객체 반환, 실패 시 False 반환
 """
-def authenticate_user(db: Session, username: str, password: str):
-    user = get_user_by_username(db, username)
+def authenticate_user(db: Session, email: str, password: str):
+    user = get_user_by_email(db, email)
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
@@ -67,11 +67,11 @@ def authenticate_user(db: Session, username: str, password: str):
 def create_user_tokens(user):
     access_token_expires = timedelta(minutes=30)
     access_token = create_access_token(
-        data={"sub": user.username, "id": user.id},
+        data={"sub": user.email, "id": user.id},
         expires_delta=access_token_expires
     )
     refresh_token = create_refresh_token(
-        data={"sub": user.username, "id": user.id}
+        data={"sub": user.email, "id": user.id}
     )
     return {
         "access_token": access_token,

@@ -17,6 +17,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Authorization"],  # Authorization 헤더 노출
 )
 
 # 미들웨어 등록

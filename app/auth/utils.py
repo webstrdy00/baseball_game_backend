@@ -69,15 +69,15 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     try:
         # 토큰 디코딩 
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        email: str = payload.get("sub")  # username 대신 email
         user_id: int = payload.get("id")
-        if username is None or user_id is None:
+        if email is None or user_id is None:
             raise credentials_exception
-        token_data = schemas.TokenData(username=username, user_id=user_id)
+        token_data = schemas.TokenData(username=email, user_id=user_id)  # 여기서는 username 필드를 그대로 사용
     except JWTError:
         raise credentials_exception
     
-    # DB에서 사용자 조회회
+    # DB에서 사용자 조회 - 이메일로 변경
     user = db.query(models.User).filter(models.User.id == token_data.user_id).first()
     if user is None:
         raise credentials_exception

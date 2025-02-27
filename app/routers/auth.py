@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from .. import models, crud, schemas
@@ -8,6 +8,12 @@ from ..auth.utils import SECRET_KEY, ALGORITHM, get_current_user
 from datetime import datetime, timedelta, UTC
 
 router = APIRouter()
+
+# OAuth2PasswordBearer 설정 수정
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="token",
+    auto_error=False  # 인증 실패 시 자동 오류 발생 방지
+)
 
 """
 새 사용자 등록 엔드포인트
@@ -24,11 +30,11 @@ def signup_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 """
 @router.post("/login", response_model=schemas.LoginResponse)
 def login(login_req: schemas.LoginRequest, response: Response, db: Session = Depends(get_db)):
-    user = crud.user.authenticate_user(db, login_req.username, login_req.password)
+    user = crud.user.authenticate_user(db, login_req.email, login_req.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="잘못된 사용자명 또는 비밀번호입니다",
+            detail="잘못된 이메일 또는 비밀번호입니다",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -101,7 +107,7 @@ def refresh_token(token: schemas.Token, db: Session = Depends(get_db)):
 현재 로그인한 사용자 정보 조회
 """
 @router.get("/me", response_model=schemas.UserResponse)
-def read_users_me(current_user = Depends(get_current_user)):
+def read_users_me(current_user: models.User = Depends(get_current_user)):
     return current_user
 
 """
@@ -110,17 +116,11 @@ def read_users_me(current_user = Depends(get_current_user)):
 미들웨어에서 설정한 사용자 정보를 사용하여 해당 사용자의 게임 목록 조회
 """
 @router.get("/history", response_model=schemas.UserGameHistoryResponse)
-def get_user_game_history(request: Request, db: Session = Depends(get_db)):
-    # 미들웨어에서 설정한 사용자 정보 사용
-    if not hasattr(request.state, "user"):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="인증이 필요합니다",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    user_id = request.state.user["id"]
-    return crud.user.get_user_game_history(db=db, user_id=user_id)
+def get_user_game_history(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return crud.user.get_user_game_history(db=db, user_id=current_user.id)
 
 """
 특정 게임의 상세 히스토리 조회

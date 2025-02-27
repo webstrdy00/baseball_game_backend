@@ -35,6 +35,10 @@ async def auth_middleware(request: Request, call_next):
     3. 그 외 경로는 유효한 토큰이 필요
     4. 액세스 토큰이 만료된 경우 리프레시 토큰으로 자동 갱신
     """
+    # OPTIONS 요청은 항상 통과시킴 (CORS preflight 요청)
+    if request.method == "OPTIONS":
+        return await call_next(request)
+    
     # 요청 경로 확인
     path = request.url.path
     
@@ -77,11 +81,11 @@ async def auth_middleware(request: Request, call_next):
     try:
         # 토큰 디코딩 및 검증
         payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = payload.get("sub")
+        email = payload.get("sub")  # username 대신 email
         user_id = payload.get("id")
         
         # 토큰에 필요한 정보가 없는 경우
-        if not username or not user_id:
+        if not email or not user_id:
             if optional_auth:
                 return await call_next(request)
             return JSONResponse(
@@ -91,7 +95,7 @@ async def auth_middleware(request: Request, call_next):
             )
         
         # 요청 상태에 사용자 정보 추가
-        request.state.user = {"username": username, "id": user_id}
+        request.state.user = {"email": email, "id": user_id}  # username 대신 email
         
     except ExpiredSignatureError:
         # 액세스 토큰이 만료된 경우, 리프레시 토큰으로 갱신 시도
@@ -99,18 +103,18 @@ async def auth_middleware(request: Request, call_next):
             try:
                 # 리프레시 토큰 검증
                 refresh_payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
-                refresh_username = refresh_payload.get("sub")
+                refresh_email = refresh_payload.get("sub")
                 refresh_user_id = refresh_payload.get("id")
                 
-                if refresh_username and refresh_user_id:
+                if refresh_email and refresh_user_id:
                     # 데이터베이스에서 사용자 확인
                     db = SessionLocal()
                     try:
                         user = db.query(models.User).filter(models.User.id == refresh_user_id).first()
-                        if user and user.username == refresh_username:
+                        if user and user.email == refresh_email:
                             # 새 액세스 토큰 생성
                             new_access_token = create_access_token(
-                                data={"sub": user.username, "id": user.id}
+                                data={"sub": user.email, "id": user.id}
                             )
                             
                             # 응답 객체에 새 토큰 설정 (헤더에만)
@@ -118,7 +122,7 @@ async def auth_middleware(request: Request, call_next):
                             response.headers["Authorization"] = f"Bearer {new_access_token}"
                             
                             # 요청 상태에 사용자 정보 추가
-                            request.state.user = {"username": user.username, "id": user.id}
+                            request.state.user = {"email": user.email, "id": user.id}
                             
                             return response
                     finally:

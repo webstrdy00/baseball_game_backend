@@ -126,9 +126,9 @@ class GameDetailHistoryResponse(BaseModel):
         "from_attributes": True
     }
 
-# 로그인 요청 스키마 추가
+# 로그인 요청 스키마
 class LoginRequest(BaseModel):
-    username: str
+    email: str  # username에서 email로 변경
     password: str
 
 # 로그인 응답 스키마 추가
