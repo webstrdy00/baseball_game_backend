@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 # 사용자 관련 스키마
 class UserBase(BaseModel):
@@ -65,6 +65,7 @@ class GameStatusResponse(BaseModel):
     attempts_left: int
     status: str
     history: List[GuessHistory]
+    answer: Optional[str] = None
 
     model_config = {
         "from_attributes": True
