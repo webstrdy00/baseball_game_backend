@@ -61,6 +61,7 @@ class GuessHistory(BaseModel):
 
 class GameStatusResponse(BaseModel):
     game_id: int
+    digits: int
     attempts_used: int
     attempts_left: int
     status: str

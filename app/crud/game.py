@@ -150,6 +150,7 @@ def get_game_status(db: Session, game_id: int):
 
     return schemas.GameStatusResponse(
         game_id=game.id,
+        digits=game.digits,
         attempts_used=game.attempts_used,
         attempts_left=attempts_left,
         status=game.status,
