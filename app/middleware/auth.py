@@ -6,6 +6,7 @@ from ..database import get_db, SessionLocal
 from .. import models
 import re
 from datetime import datetime, UTC
+import os
 
 # 인증이 필요하지 않은 경로 패턴
 PUBLIC_PATHS = [
@@ -37,7 +38,24 @@ async def auth_middleware(request: Request, call_next):
     """
     # OPTIONS 요청은 항상 통과시킴 (CORS preflight 요청)
     if request.method == "OPTIONS":
-        return await call_next(request)
+        response = await call_next(request)
+        
+        # CORS 헤더 추가 - 동적으로 Origin 설정
+        origin = request.headers.get("Origin", "*")
+        allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+        
+        if origin in allowed_origins or "*" in allowed_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+        else:
+            response.headers["Access-Control-Allow-Origin"] = allowed_origins[0] if allowed_origins else "*"
+        
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept"
+        response.headers["Access-Control-Max-Age"] = "3600"
+        
+        return response
+    
     
     # 요청 경로 확인
     path = request.url.path

@@ -46,8 +46,8 @@ def login(login_req: schemas.LoginRequest, response: Response, db: Session = Dep
         key="refresh_token",
         value=tokens["refresh_token"],
         httponly=True,
-        # secure=True,  # HTTPS 적용 시 주석 해제
-        samesite="lax",  # CSRF 보호
+        secure=True,  # HTTPS에서는 반드시 True로 설정
+        samesite="none",  # 크로스 사이트 요청에서도 쿠키 전송 허용
         max_age=7*24*3600,  # 7일
         path="/"
     )

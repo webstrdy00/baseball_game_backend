@@ -56,6 +56,7 @@ jobs:
               echo "ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}" >> .env
               echo "REFRESH_TOKEN_EXPIRE_DAYS=${{ secrets.REFRESH_TOKEN_EXPIRE_DAYS }}" >> .env
               echo "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" >> .env
+              echo "USE_HTTPS=${{ secrets.USE_HTTPS }}" >> .env
             fi
 
             # 도커 이미지 가져오기
