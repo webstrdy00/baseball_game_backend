@@ -16,15 +16,17 @@ app = FastAPI()
 
 # CORS 설정을 .env에서 가져오기
 origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+print(f"허용된 CORS origins: {origins}")  # 디버깅용
 
 # CORS 미들웨어 추가
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,   # .env에서 가져온 origin 목록
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["Authorization"],  # Authorization 헤더 노출
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept"],
+    expose_headers=["Authorization"],
+    max_age=3600,  # preflight 요청 캐싱 시간(초)
 )
 
 # 미들웨어 등록
