@@ -16,7 +16,6 @@ app = FastAPI()
 
 # CORS 설정을 .env에서 가져오기
 origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
-print(f"허용된 CORS origins: {origins}")  # 디버깅용
 
 # CORS 미들웨어 추가
 app.add_middleware(

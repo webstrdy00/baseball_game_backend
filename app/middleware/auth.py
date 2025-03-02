@@ -7,10 +7,6 @@ from .. import models
 import re
 from datetime import datetime, UTC
 import os
-import logging
-
-# 로거 설정
-logger = logging.getLogger("uvicorn")
 
 # 인증이 필요하지 않은 경로 패턴
 PUBLIC_PATHS = [
@@ -40,13 +36,8 @@ async def auth_middleware(request: Request, call_next):
     3. 그 외 경로는 유효한 토큰이 필요
     4. 액세스 토큰이 만료된 경우 리프레시 토큰으로 자동 갱신
     """
-    # 요청 정보 로깅
-    logger.debug(f"Request: {request.method} {request.url.path}")
-    logger.debug(f"Headers: {request.headers}")
-    
     # OPTIONS 요청은 항상 통과시킴
     if request.method == "OPTIONS":
-        logger.debug("OPTIONS 요청 감지: CORS preflight 요청으로 처리")
         return await call_next(request)
     
     # 요청 경로 확인
