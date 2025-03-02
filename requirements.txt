@@ -1,14 +1,11 @@
-python -m venv venv
-Set-ExecutionPolicy RemoteSigned -Scope Process
-venv\Scripts\activate
-pip install fastapi uvicorn
-pip install sqlalchemy asyncpg
-pip install pydantic
-pip install psycopg2-binary
-pip install python-dotenv
-pip install python-jose[cryptography]
-pip install passlib[bcrypt]
-pip install python-multipart
-
-uvicorn app.main:app --reload
-http://127.0.0.1:8000/docs
+fastapi==0.115.8
+uvicorn==0.34.0
+SQLAlchemy==2.0.38
+asyncpg==0.30.0
+pydantic==2.10.6
+psycopg2-binary==2.9.10
+python-dotenv==1.0.1
+python-jose==3.4.0
+bcrypt==4.2.1
+passlib==1.7.4
+python-multipart==0.0.20

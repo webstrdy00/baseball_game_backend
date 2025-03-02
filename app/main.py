@@ -1,19 +1,26 @@
 # app/main.py
+import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from .database import Base, engine
 from .routers import game, auth
 from .middleware.auth import auth_middleware
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # DB 테이블 생성
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# CORS 설정을 .env에서 가져오기
+origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+
 # CORS 미들웨어 추가
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite 기본 포트
+    allow_origins=origins,   # .env에서 가져온 origin 목록
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
