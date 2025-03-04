@@ -172,9 +172,11 @@ class TetrisGameStatus(str, Enum):
 
 # 테트리스 조각 정보
 class TetrisPiece(BaseModel):
-    type: TetrisPieceType
-    position: List[List[int]]  # x, y 좌표의 리스트
-    rotation: int = 0
+    type: str
+    shape: List[List[int]]
+    color: int
+    position: List[int]  # 수정된 부분 - 단일 리스트로 변경
+    rotation: int
 
 # 게임 생성 요청
 class CreateTetrisGameRequest(BaseModel):
