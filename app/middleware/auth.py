@@ -25,6 +25,11 @@ OPTIONAL_AUTH_PATHS = [
     r"^/games$",
     r"^/games/\d+$",
     r"^/games/\d+/guesses$",
+    r"^/tetris$",                  # 테트리스 게임 생성
+    r"^/tetris/\d+$",              # 테트리스 게임 상태 조회
+    r"^/tetris/\d+/moves$",        # 테트리스 게임 이동
+    r"^/tetris/\d+/pause$",        # 테트리스 게임 일시정지/재개
+    r"^/tetris/leaderboard$",      # 테트리스 리더보드
 ]
 
 async def auth_middleware(request: Request, call_next):
