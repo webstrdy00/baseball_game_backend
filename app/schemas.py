@@ -194,20 +194,22 @@ class CreateTetrisGameResponse(BaseModel):
 
 # 게임 상태 응답
 class TetrisGameStatusResponse(BaseModel):
+    """
+    테트리스 게임 상태 응답 스키마
+    """
     game_id: int
-    status: TetrisGameStatus
-    board: List[List[int]]  # 게임 보드 상태
-    current_piece: Optional[TetrisPiece] = None
-    next_piece: Optional[TetrisPiece] = None
-    held_piece: Optional[TetrisPiece] = None
+    status: str
+    board: List[List[int]]
+    current_piece: Optional[Dict[str, Any]]
+    next_piece: Optional[Dict[str, Any]]
+    held_piece: Optional[Dict[str, Any]] = None  # 홀드된 블록 정보
     score: int
     level: int
     lines_cleared: int
-    can_hold: bool = True
+    can_hold: bool = True  # 홀드 사용 가능 여부
     
-    model_config = {
-        "from_attributes": True
-    }
+    class Config:
+        from_attributes = True
 
 # 이동 요청
 class TetrisMoveRequest(BaseModel):
@@ -215,22 +217,24 @@ class TetrisMoveRequest(BaseModel):
 
 # 이동 응답
 class TetrisMoveResponse(BaseModel):
+    """
+    테트리스 게임 이동 응답 스키마
+    """
     success: bool
     board: List[List[int]]
-    current_piece: Optional[TetrisPiece] = None
-    next_piece: Optional[TetrisPiece] = None
-    held_piece: Optional[TetrisPiece] = None
+    current_piece: Optional[Dict[str, Any]]
+    next_piece: Optional[Dict[str, Any]]
+    held_piece: Optional[Dict[str, Any]] = None  # 홀드된 블록 정보
     score: int
     level: int
     lines_cleared: int
-    line_clear_count: int = 0  # 이번 이동으로 지워진 라인 수
-    status: TetrisGameStatus
-    can_hold: bool = True
+    line_clear_count: int = 0
+    status: str
+    can_hold: bool = True  # 홀드 사용 가능 여부
     message: str
     
-    model_config = {
-        "from_attributes": True
-    }
+    class Config:
+        from_attributes = True
 
 # 일시정지 요청
 class TetrisPauseRequest(BaseModel):

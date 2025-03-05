@@ -88,6 +88,10 @@ class TetrisGame(Base):
     current_piece = Column(String, nullable=True)
     # 다음 블록 정보
     next_piece = Column(String, nullable=True)
+    # 홀드된 블록 정보
+    held_piece = Column(String, nullable=True)
+    # 홀드 사용 가능 여부
+    can_hold = Column(Boolean, default=True)
     # 게임 시작 시각
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))
     # 마지막 업데이트 시각

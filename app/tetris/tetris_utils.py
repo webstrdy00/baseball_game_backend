@@ -212,143 +212,124 @@ def calculate_level(lines_cleared):
 
 def process_move(board, current_piece, move_type, next_piece=None, held_piece=None, can_hold=True):
     """
-    이동을 처리하고 결과를 반환합니다.
+    테트리스 게임에서 이동을 처리합니다.
     
     Args:
-        board: 게임 보드
+        board: 현재 게임 보드
         current_piece: 현재 블록
-        move_type: 이동 타입
-        next_piece: 다음 블록 (선택적)
-        held_piece: 보관 중인 블록 (선택적)
-        can_hold: 현재 홀드 가능 여부
+        move_type: 이동 타입 (left, right, down, rotate, drop, hard_drop, hold)
+        next_piece: 다음 블록
+        held_piece: 홀드된 블록
+        can_hold: 홀드 가능 여부
     
     Returns:
-        dict: 이동 결과 정보
+        처리 결과를 담은 딕셔너리
     """
     result = {
-        "success": False,
-        "message": "",
+        "success": True,
         "board": board,
         "current_piece": current_piece,
         "next_piece": next_piece,
         "held_piece": held_piece,
-        "can_hold": can_hold
+        "can_hold": can_hold,
+        "message": "이동이 성공적으로 처리되었습니다."
     }
     
-    # 이동 처리
-    if move_type == "left":
-        # 왼쪽 이동
-        if not check_collision(board, current_piece, (0, -1)):
-            current_piece["position"][1] -= 1
-            result["success"] = True
+    # 홀드 처리
+    if move_type == "hold":
+        if not can_hold:
+            result["success"] = False
+            result["message"] = "이미 홀드를 사용했습니다. 블록이 바닥에 닿을 때까지 다시 사용할 수 없습니다."
+            return result
+        
+        # 홀드 로직
+        if held_piece:
+            # 홀드된 블록과 현재 블록 교체
+            result["current_piece"], result["held_piece"] = held_piece, current_piece
+        else:
+            # 현재 블록을 홀드하고 새 블록 생성
+            result["held_piece"] = current_piece
+            result["current_piece"] = next_piece
+            result["next_piece"] = generate_piece()
+        
+        # 홀드 사용 표시 - 블록이 바닥에 닿을 때까지 다시 사용 불가
+        result["can_hold"] = False
+        result["message"] = "블록이 홀드되었습니다."
+        return result
+    
+    # 왼쪽 이동
+    elif move_type == "left":
+        # 왼쪽 이동 로직
+        new_position = [current_piece["position"][0], current_piece["position"][1] - 1]
+        if is_valid_position(board, current_piece["shape"], new_position):
+            current_piece["position"] = new_position
+            result["current_piece"] = current_piece
         else:
             result["message"] = "왼쪽으로 이동할 수 없습니다."
     
+    # 오른쪽 이동
     elif move_type == "right":
-        # 오른쪽 이동
-        if not check_collision(board, current_piece, (0, 1)):
-            current_piece["position"][1] += 1
-            result["success"] = True
+        # 오른쪽 이동 로직
+        new_position = [current_piece["position"][0], current_piece["position"][1] + 1]
+        if is_valid_position(board, current_piece["shape"], new_position):
+            current_piece["position"] = new_position
+            result["current_piece"] = current_piece
         else:
             result["message"] = "오른쪽으로 이동할 수 없습니다."
     
+    # 아래로 이동
     elif move_type == "down":
-        # 아래로 이동
-        if not check_collision(board, current_piece, (1, 0)):
-            current_piece["position"][0] += 1
-            result["success"] = True
+        # 아래로 이동 로직
+        new_position = [current_piece["position"][0] + 1, current_piece["position"][1]]
+        if is_valid_position(board, current_piece["shape"], new_position):
+            current_piece["position"] = new_position
+            result["current_piece"] = current_piece
         else:
-            # 더 이상 내려갈 수 없으면 보드에 병합
-            result["board"] = merge_piece_to_board(board, current_piece)
-            
-            # 다음 블록 설정
-            if next_piece:
-                result["current_piece"] = next_piece
-                result["next_piece"] = generate_piece()
-                result["success"] = True
-            else:
-                result["message"] = "게임이 종료되었습니다."
-    
-    elif move_type == "rotate":
-        # 회전
-        rotated_piece = rotate_piece(current_piece)
-        if not check_collision(board, rotated_piece):
-            result["current_piece"] = rotated_piece
-            result["success"] = True
-        else:
-            # 벽 밀기 (wall kick) 시도
-            offsets = [(0, -1), (0, 1), (-1, 0), (1, 0)]
-            for off_row, off_col in offsets:
-                rotated_piece_with_offset = copy.deepcopy(rotated_piece)
-                rotated_piece_with_offset["position"][0] += off_row
-                rotated_piece_with_offset["position"][1] += off_col
-                
-                if not check_collision(board, rotated_piece_with_offset):
-                    result["current_piece"] = rotated_piece_with_offset
-                    result["success"] = True
-                    break
-            
-            if not result["success"]:
-                result["message"] = "회전할 수 없습니다."
-    
-    elif move_type == "drop":
-        # 한 칸 드롭
-        if not check_collision(board, current_piece, (1, 0)):
-            current_piece["position"][0] += 1
-            result["success"] = True
-        else:
-            # 더 이상 내려갈 수 없으면 보드에 병합
-            result["board"] = merge_piece_to_board(board, current_piece)
-            
-            # 다음 블록 설정
-            if next_piece:
-                result["current_piece"] = next_piece
-                result["next_piece"] = generate_piece()
-                result["success"] = True
-            else:
-                result["message"] = "게임이 종료되었습니다."
-    
-    elif move_type == "hard_drop":
-        # 하드 드롭 (최대한 아래로)
-        rows_dropped = 0
-        while not check_collision(board, current_piece, (rows_dropped + 1, 0)):
-            rows_dropped += 1
-        
-        # 위치 업데이트
-        current_piece["position"][0] += rows_dropped
-        
-        # 보드에 병합
-        result["board"] = merge_piece_to_board(board, current_piece)
-        
-        # 다음 블록 설정
-        if next_piece:
+            # 블록이 바닥에 닿음
+            place_piece(board, current_piece)
+            result["board"] = board
             result["current_piece"] = next_piece
             result["next_piece"] = generate_piece()
-            result["success"] = True
-        else:
-            result["message"] = "게임이 종료되었습니다."
+            # 중요: 블록이 바닥에 닿았을 때 홀드 사용 가능하도록 리셋
+            result["can_hold"] = True
+            result["message"] = "블록이 바닥에 닿았습니다. 새 블록이 생성되었습니다."
     
-    elif move_type == "hold":
-        # 홀드 기능
-        if can_hold:
-            if held_piece:
-                # 보관된 블록과 현재 블록 교체
-                temp = current_piece
-                result["current_piece"] = held_piece
-                result["held_piece"] = temp
-            else:
-                # 현재 블록을 보관하고 다음 블록을 현재 블록으로 설정
-                result["held_piece"] = current_piece
-                result["current_piece"] = next_piece
-                result["next_piece"] = generate_piece()
-            
-            # 보관된 블록 위치 초기화
-            result["held_piece"]["position"] = [0, 3]
-            result["current_piece"]["position"] = [0, 3]
-            result["can_hold"] = False  # 한 번 사용하면 피스가 설치될 때까지 사용 불가
-            result["success"] = True
+    # 회전
+    elif move_type == "rotate":
+        # 회전 로직
+        rotated_shape = rotate_shape(current_piece["shape"])
+        if is_valid_position(board, rotated_shape, current_piece["position"]):
+            current_piece["shape"] = rotated_shape
+            current_piece["rotation"] = (current_piece["rotation"] + 1) % 4
+            result["current_piece"] = current_piece
         else:
-            result["message"] = "이미 홀드를 사용했습니다."
+            result["message"] = "회전할 수 없습니다."
+    
+    # 소프트 드롭
+    elif move_type == "drop":
+        # 소프트 드롭 로직
+        drop_position = get_drop_position(board, current_piece)
+        current_piece["position"] = drop_position
+        place_piece(board, current_piece)
+        result["board"] = board
+        result["current_piece"] = next_piece
+        result["next_piece"] = generate_piece()
+        # 중요: 블록이 바닥에 닿았을 때 홀드 사용 가능하도록 리셋
+        result["can_hold"] = True
+        result["message"] = "블록이 드롭되었습니다. 새 블록이 생성되었습니다."
+    
+    # 하드 드롭
+    elif move_type == "hard_drop":
+        # 하드 드롭 로직
+        drop_position = get_drop_position(board, current_piece)
+        current_piece["position"] = drop_position
+        place_piece(board, current_piece)
+        result["board"] = board
+        result["current_piece"] = next_piece
+        result["next_piece"] = generate_piece()
+        # 중요: 블록이 바닥에 닿았을 때 홀드 사용 가능하도록 리셋
+        result["can_hold"] = True
+        result["message"] = "블록이 하드 드롭되었습니다. 새 블록이 생성되었습니다."
     
     return result
 
@@ -358,3 +339,85 @@ def check_game_over(board, current_piece):
     """
     # 새 블록을 놓을 수 없는 경우 게임 오버
     return check_collision(board, current_piece)
+
+def is_valid_position(board, shape, position):
+    """
+    블록의 위치가 유효한지 확인합니다.
+    
+    Args:
+        board: 게임 보드
+        shape: 블록 모양
+        position: 블록 위치 [row, col]
+    
+    Returns:
+        bool: 유효한 위치면 True, 아니면 False
+    """
+    # check_collision 함수의 반대 결과를 반환
+    return not check_collision(board, {"shape": shape, "position": position})
+
+def rotate_shape(shape):
+    """
+    블록 모양을 시계방향으로 90도 회전합니다.
+    
+    Args:
+        shape: 블록 모양
+    
+    Returns:
+        회전된 블록 모양
+    """
+    N = len(shape)
+    rotated = [[0 for _ in range(N)] for _ in range(N)]
+    
+    # 시계방향 90도 회전
+    for i in range(N):
+        for j in range(N):
+            rotated[j][N-1-i] = shape[i][j]
+    
+    return rotated
+
+def place_piece(board, piece):
+    """
+    블록을 보드에 배치합니다.
+    
+    Args:
+        board: 게임 보드
+        piece: 블록 정보
+    
+    Returns:
+        None (board가 직접 수정됨)
+    """
+    shape = piece["shape"]
+    pos_row, pos_col = piece["position"]
+    color = piece["color"]
+    
+    for i in range(len(shape)):
+        for j in range(len(shape[i])):
+            if shape[i][j] == 0:  # 빈 공간은 무시
+                continue
+                
+            row = pos_row + i
+            col = pos_col + j
+            
+            # 보드 범위 내에 있는 경우에만 배치
+            if 0 <= row < len(board) and 0 <= col < len(board[0]):
+                board[row][col] = color
+
+def get_drop_position(board, piece):
+    """
+    블록이 떨어질 최종 위치를 계산합니다.
+    
+    Args:
+        board: 게임 보드
+        piece: 블록 정보
+    
+    Returns:
+        최종 위치 [row, col]
+    """
+    current_row, current_col = piece["position"]
+    shape = piece["shape"]
+    
+    # 블록을 한 칸씩 아래로 이동하며 충돌 여부 확인
+    while not check_collision(board, {"shape": shape, "position": [current_row + 1, current_col]}):
+        current_row += 1
+    
+    return [current_row, current_col]
