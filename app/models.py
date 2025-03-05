@@ -21,6 +21,7 @@ class User(Base):
     
     # 관계 설정
     games = relationship("Game", back_populates="user")
+    tetris_games = relationship("TetrisGame", back_populates="user")
 
 """
 게임 모델
@@ -68,3 +69,73 @@ class Guess(Base):
     
     # 관계 설정
     game = relationship("Game", back_populates="guesses")
+
+class TetrisGame(Base):
+    __tablename__ = "tetris_games"
+
+    id = Column(Integer, primary_key=True, index=True)
+    # 게임 상태 (ongoing, paused, game_over)
+    status = Column(String, default="ongoing")
+    # 현재 점수
+    score = Column(Integer, default=0)
+    # 현재 레벨
+    level = Column(Integer, default=1)
+    # 제거한 라인 수
+    lines_cleared = Column(Integer, default=0)
+    # 게임 보드 상태 (JSON 형태로 저장)
+    board_state = Column(String, default="{}")
+    # 현재 블록 정보
+    current_piece = Column(String, nullable=True)
+    # 다음 블록 정보
+    next_piece = Column(String, nullable=True)
+    # 홀드된 블록 정보
+    held_piece = Column(String, nullable=True)
+    # 홀드 사용 가능 여부
+    can_hold = Column(Boolean, default=True)
+    # 게임 시작 시각
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    # 마지막 업데이트 시각
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+    # 게임 종료 시각
+    ended_at = Column(DateTime, nullable=True)
+    # 사용자 ID (nullable - 로그인 없이도 게임 가능)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
+    # 관계 설정
+    user = relationship("User", back_populates="tetris_games")
+    moves = relationship("TetrisMove", back_populates="game", cascade="all, delete-orphan")
+
+class TetrisMove(Base):
+    __tablename__ = "tetris_moves"
+
+    id = Column(Integer, primary_key=True, index=True)
+    game_id = Column(Integer, ForeignKey("tetris_games.id"))
+    # 이동 타입 (left, right, rotate, drop, hard_drop)
+    move_type = Column(String, nullable=False)
+    # 이동 후 블록 위치
+    piece_position = Column(String, nullable=True)
+    # 이동 후 점수
+    score_after_move = Column(Integer, default=0)
+    # 이동으로 제거된 라인 수
+    lines_cleared = Column(Integer, default=0)
+    # 이동 시각
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    
+    # 관계 설정
+    game = relationship("TetrisGame", back_populates="moves")
+
+
+# 테트리스 게임 점수 기록
+class TetrisHighScore(Base):
+    __tablename__ = "tetris_high_scores"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    score = Column(Integer, default=0)
+    level = Column(Integer, default=1)
+    lines_cleared = Column(Integer, default=0)
+    game_duration = Column(Integer, default=0)  # 초 단위
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    
+    # 관계 설정
+    user = relationship("User", backref="tetris_high_scores")

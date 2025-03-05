@@ -48,15 +48,13 @@ jobs:
             mkdir -p ~/baseball-game
             cd ~/baseball-game
 
-            # .env 파일이 없으면 생성
-            if [ ! -f .env ]; then
-              echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
-              echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
-              echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> .env
-              echo "ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}" >> .env
-              echo "REFRESH_TOKEN_EXPIRE_DAYS=${{ secrets.REFRESH_TOKEN_EXPIRE_DAYS }}" >> .env
-              echo "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" >> .env
-            fi
+            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
+            echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
+            echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> .env
+            echo "ACCESS_TOKEN_EXPIRE_MINUTES=${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}" >> .env
+            echo "REFRESH_TOKEN_EXPIRE_DAYS=${{ secrets.REFRESH_TOKEN_EXPIRE_DAYS }}" >> .env
+            echo "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" >> .env
+            echo "USE_HTTPS=${{ secrets.USE_HTTPS }}" >> .env
 
             # 도커 이미지 가져오기
             docker pull ${{ secrets.DOCKER_USERNAME }}/baseball-game:latest

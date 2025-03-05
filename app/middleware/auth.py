@@ -6,6 +6,7 @@ from ..database import get_db, SessionLocal
 from .. import models
 import re
 from datetime import datetime, UTC
+import os
 
 # 인증이 필요하지 않은 경로 패턴
 PUBLIC_PATHS = [
@@ -24,6 +25,11 @@ OPTIONAL_AUTH_PATHS = [
     r"^/games$",
     r"^/games/\d+$",
     r"^/games/\d+/guesses$",
+    r"^/tetris$",                  # 테트리스 게임 생성
+    r"^/tetris/\d+$",              # 테트리스 게임 상태 조회
+    r"^/tetris/\d+/moves$",        # 테트리스 게임 이동
+    r"^/tetris/\d+/pause$",        # 테트리스 게임 일시정지/재개
+    r"^/tetris/leaderboard$",      # 테트리스 리더보드
 ]
 
 async def auth_middleware(request: Request, call_next):
@@ -35,7 +41,7 @@ async def auth_middleware(request: Request, call_next):
     3. 그 외 경로는 유효한 토큰이 필요
     4. 액세스 토큰이 만료된 경우 리프레시 토큰으로 자동 갱신
     """
-    # OPTIONS 요청은 항상 통과시킴 (CORS preflight 요청)
+    # OPTIONS 요청은 항상 통과시킴
     if request.method == "OPTIONS":
         return await call_next(request)
     

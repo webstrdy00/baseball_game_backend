@@ -1,1 +1,1 @@
-from . import game, user
+from . import game, user, tetris
