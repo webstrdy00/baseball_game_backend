@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from .database import Base, engine
-from .routers import game, auth
+from .routers import game, auth, tetris
 from .middleware.auth import auth_middleware
 from dotenv import load_dotenv
 
@@ -34,3 +34,4 @@ app.middleware("http")(auth_middleware)
 # 라우터 등록
 app.include_router(auth.router, tags=["auth"], prefix="/auth")
 app.include_router(game.router, tags=["games"])
+app.include_router(tetris.router, tags=["tetris"])

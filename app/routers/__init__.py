@@ -1,1 +1,1 @@
-from . import game, auth
+from . import game, auth, tetris
