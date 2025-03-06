@@ -15,13 +15,18 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
+    hashed_password = Column(String, nullable=True)  # 소셜 로그인 사용자는 비밀번호가 없을 수 있음
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    
+    # 소셜 로그인 관련 필드 추가
+    social_id = Column(String, nullable=True)  # 소셜 서비스에서의 사용자 ID
+    social_type = Column(String, nullable=True)  # 소셜 서비스 타입 (kakao, google 등)
     
     # 관계 설정
     games = relationship("Game", back_populates="user")
     tetris_games = relationship("TetrisGame", back_populates="user")
+    tetris_high_scores = relationship("TetrisHighScore", back_populates="user")
 
 """
 게임 모델
@@ -138,4 +143,4 @@ class TetrisHighScore(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))
     
     # 관계 설정
-    user = relationship("User", backref="tetris_high_scores")
+    user = relationship("User", back_populates="tetris_high_scores")

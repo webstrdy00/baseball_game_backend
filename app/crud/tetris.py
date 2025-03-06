@@ -145,14 +145,16 @@ def make_move(db: Session, game_id: int, move_req: schemas.TetrisMoveRequest):
     except AttributeError:
         can_hold = True
     
-    # 이동 처리
+    # 이동 처리 - clear_hold와 skip_store 파라미터 추가
     result = tetris_utils.process_move(
         board, 
         current_piece, 
         move_req.move_type, 
         next_piece=next_piece, 
         held_piece=held_piece,
-        can_hold=can_hold
+        can_hold=can_hold,
+        clear_hold=move_req.clear_hold,
+        skip_store=move_req.skip_store
     )
     
     # 이동 결과 적용
@@ -457,15 +459,35 @@ def update_game_state(db: Session, game_id: int, move_req: schemas.TetrisMoveReq
     
     if move_req.move_type == TetrisMoveType.HOLD:
         if can_hold:
-            # 홀드 로직
+            # 홀드 로직 - 프론트엔드 요구사항에 맞게 수정
             if held_piece:
-                # 홀드된 블록과 현재 블록 교체
-                current_piece, held_piece = held_piece, current_piece
+                # 홀드된 블록이 있는 경우
+                if move_req.clear_hold and move_req.skip_store:
+                    # 홀드된 블록을 현재 블록으로 가져오고, 홀드 공간은 비우기
+                    current_piece = held_piece
+                    held_piece = None
+                elif move_req.clear_hold:
+                    # 홀드된 블록을 현재 블록으로 가져오고, 현재 블록을 홀드에 저장
+                    current_piece, held_piece = held_piece, current_piece
+                elif move_req.skip_store:
+                    # 홀드된 블록을 현재 블록으로 가져오고, 현재 블록은 저장하지 않음
+                    current_piece = held_piece
+                    # held_piece는 변경하지 않음
+                else:
+                    # 기본 동작: 홀드된 블록과 현재 블록 교체
+                    current_piece, held_piece = held_piece, current_piece
             else:
-                # 현재 블록을 홀드하고 새 블록 생성
-                held_piece = current_piece
-                current_piece = json.loads(game.next_piece)
-                next_piece = generate_new_piece()
+                # 홀드된 블록이 없는 경우 (첫 홀드)
+                if move_req.skip_store:
+                    # 현재 블록을 홀드에 저장하지 않고, 다음 블록을 현재 블록으로
+                    current_piece = next_piece
+                    next_piece = tetris_utils.generate_piece()
+                    # held_piece는 변경하지 않음 (None 유지)
+                else:
+                    # 기본 동작: 현재 블록을 홀드하고 새 블록 생성
+                    held_piece = current_piece
+                    current_piece = next_piece
+                    next_piece = tetris_utils.generate_piece()
             
             # 홀드 사용 표시
             can_hold = False
@@ -492,7 +514,7 @@ def update_game_state(db: Session, game_id: int, move_req: schemas.TetrisMoveReq
         
         # 중요: 새 블록 생성 시에도 held_piece 정보 유지
         current_piece = next_piece
-        next_piece = generate_new_piece()
+        next_piece = tetris_utils.generate_piece()
         
         # 홀드 사용 가능하도록 리셋
         can_hold = True
@@ -504,7 +526,7 @@ def update_game_state(db: Session, game_id: int, move_req: schemas.TetrisMoveReq
     game.board_state = json.dumps(board)
     game.current_piece = json.dumps(current_piece)
     game.next_piece = json.dumps(next_piece)
-    game.held_piece = json.dumps(held_piece)  # 홀드된 블록 정보 항상 저장
+    game.held_piece = json.dumps(held_piece) if held_piece else None  # 홀드된 블록 정보 항상 저장
     
     # can_hold 필드가 있는 경우에만 업데이트
     if hasattr(game, 'can_hold'):
