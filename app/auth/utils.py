@@ -6,14 +6,15 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 import os
 from dotenv import load_dotenv
-from .. import models, schemas
+from .. import models, schemas, crud
 from ..database import get_db
+from typing import Optional, Dict, Any
 
 # .env 파일 로드
 load_dotenv()
 
 # 환경 변수에서 설정 가져오기
-SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")  # 환경 변수가 없을 경우 대체값 사용
+SECRET_KEY = os.getenv("SECRET_KEY", "your_secret_key_here")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
@@ -185,3 +186,19 @@ def get_current_user_from_cookie(
         )
     
     return user 
+
+def verify_token(token: str) -> Optional[Dict[str, Any]]:
+    """
+    JWT 토큰을 검증합니다.
+    
+    Args:
+        token: 검증할 JWT 토큰
+        
+    Returns:
+        검증 성공 시 토큰의 페이로드, 실패 시 None
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        return None 
