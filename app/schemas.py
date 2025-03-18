@@ -20,9 +20,10 @@ class UserResponse(UserBase):
         "from_attributes": True
     }
 
-# 로그인 요청 스키마
+# 로그인 관련 스키마
 class LoginRequest(BaseModel):
-    email: str  # username에서 email로 변경
+    """로그인 요청 스키마"""
+    email: str
     password: str
 
 # 로그인 응답 스키마 추가
@@ -43,7 +44,7 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 class TokenData(BaseModel):
-    username: str | None = None
+    email: str | None = None
     user_id: int | None = None
     
 # 게임 생성 시 요청 바디
@@ -213,7 +214,15 @@ class TetrisGameStatusResponse(BaseModel):
 
 # 이동 요청
 class TetrisMoveRequest(BaseModel):
-    move_type: TetrisMoveType
+    """
+    테트리스 게임 이동 요청 스키마
+    """
+    move_type: str
+    clear_hold: Optional[bool] = False  # 홀드 블록을 비우기 위한 옵션
+    skip_store: Optional[bool] = False  # 현재 블록을 홀드에 저장하지 않기 위한 옵션
+    
+    class Config:
+        from_attributes = True
 
 # 이동 응답
 class TetrisMoveResponse(BaseModel):
@@ -283,3 +292,14 @@ class TetrisLeaderboardResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+# 카카오 로그인 관련 스키마
+class KakaoLoginRequest(BaseModel):
+    """카카오 로그인 요청 스키마"""
+    code: str
+
+class SocialUserCreate(BaseModel):
+    email: str
+    username: str
+    social_id: str
+    social_type: str = "kakao"

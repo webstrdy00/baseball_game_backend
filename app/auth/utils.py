@@ -6,14 +6,15 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 import os
 from dotenv import load_dotenv
-from .. import models, schemas
+from .. import models, schemas, crud
 from ..database import get_db
+from typing import Optional, Dict, Any
 
 # .env 파일 로드
 load_dotenv()
 
 # 환경 변수에서 설정 가져오기
-SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")  # 환경 변수가 없을 경우 대체값 사용
+SECRET_KEY = os.getenv("SECRET_KEY", "your_secret_key_here")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
@@ -73,7 +74,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         user_id: int = payload.get("id")
         if email is None or user_id is None:
             raise credentials_exception
-        token_data = schemas.TokenData(username=email, user_id=user_id)  # 여기서는 username 필드를 그대로 사용
+        token_data = schemas.TokenData(email=email, user_id=user_id)  # email 필드 사용
     except JWTError:
         raise credentials_exception
     
@@ -161,9 +162,9 @@ def get_current_user_from_cookie(
     
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        email: str = payload.get("sub")  # username 대신 email
         user_id: int = payload.get("id")
-        if username is None or user_id is None:
+        if email is None or user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="유효하지 않은 인증 정보",
@@ -184,4 +185,20 @@ def get_current_user_from_cookie(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    return user 
+    return user
+
+def verify_token(token: str) -> Optional[Dict[str, Any]]:
+    """
+    JWT 토큰을 검증합니다.
+    
+    Args:
+        token: 검증할 JWT 토큰
+        
+    Returns:
+        검증 성공 시 토큰의 페이로드, 실패 시 None
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        return None 

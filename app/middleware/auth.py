@@ -10,14 +10,19 @@ import os
 
 # 인증이 필요하지 않은 경로 패턴
 PUBLIC_PATHS = [
-    r"^/auth/signup$",
-    r"^/auth/token$",
-    r"^/auth/login$",
-    r"^/auth/logout$",  
-    r"^/auth/refresh$",
-    r"^/docs",
-    r"^/redoc",
-    r"^/openapi.json$",
+    "/docs",
+    "/redoc",
+    "/openapi.json",
+    "/",
+    "/health",
+    "/auth/login",
+    "/auth/signup",
+    "/auth/refresh",
+    "/auth/logout",
+    "/auth/kakao",  # 카카오 로그인 엔드포인트 추가
+    "/auth/kakao/callback",  # 카카오 로그인 콜백 엔드포인트 추가
+    "/game/new",
+    "/tetris/new"
 ]
 
 # 선택적 인증 경로 패턴 (로그인 없이도 접근 가능하지만, 로그인 정보가 있으면 활용)
@@ -88,7 +93,7 @@ async def auth_middleware(request: Request, call_next):
         # 토큰 디코딩 및 검증
         payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("sub")  # username 대신 email
-        user_id = payload.get("id")
+        user_id = payload.get("id") or payload.get("user_id")  # id 또는 user_id 키 모두 확인
         
         # 토큰에 필요한 정보가 없는 경우
         if not email or not user_id:
@@ -110,7 +115,7 @@ async def auth_middleware(request: Request, call_next):
                 # 리프레시 토큰 검증
                 refresh_payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
                 refresh_email = refresh_payload.get("sub")
-                refresh_user_id = refresh_payload.get("id")
+                refresh_user_id = refresh_payload.get("id") or refresh_payload.get("user_id")  # id 또는 user_id 키 모두 확인
                 
                 if refresh_email and refresh_user_id:
                     # 데이터베이스에서 사용자 확인
@@ -123,12 +128,14 @@ async def auth_middleware(request: Request, call_next):
                                 data={"sub": user.email, "id": user.id}
                             )
                             
-                            # 응답 객체에 새 토큰 설정 (헤더에만)
-                            response = await call_next(request)
-                            response.headers["Authorization"] = f"Bearer {new_access_token}"
-                            
                             # 요청 상태에 사용자 정보 추가
                             request.state.user = {"email": user.email, "id": user.id}
+                            
+                            # 다음 미들웨어 또는 엔드포인트 호출
+                            response = await call_next(request)
+                            
+                            # 응답 객체에 새 토큰 설정
+                            response.headers["Authorization"] = f"Bearer {new_access_token}"
                             
                             return response
                     finally:

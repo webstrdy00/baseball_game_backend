@@ -210,7 +210,7 @@ def calculate_level(lines_cleared):
     """
     return lines_cleared // 10 + 1
 
-def process_move(board, current_piece, move_type, next_piece=None, held_piece=None, can_hold=True):
+def process_move(board, current_piece, move_type, next_piece=None, held_piece=None, can_hold=True, clear_hold=False, skip_store=False):
     """
     테트리스 게임에서 이동을 처리합니다.
     
@@ -221,6 +221,8 @@ def process_move(board, current_piece, move_type, next_piece=None, held_piece=No
         next_piece: 다음 블록
         held_piece: 홀드된 블록
         can_hold: 홀드 가능 여부
+        clear_hold: 홀드 블록을 비우기 위한 옵션
+        skip_store: 현재 블록을 홀드에 저장하지 않기 위한 옵션
     
     Returns:
         처리 결과를 담은 딕셔너리
@@ -242,15 +244,37 @@ def process_move(board, current_piece, move_type, next_piece=None, held_piece=No
             result["message"] = "이미 홀드를 사용했습니다. 블록이 바닥에 닿을 때까지 다시 사용할 수 없습니다."
             return result
         
-        # 홀드 로직
+        # 홀드 로직 - 프론트엔드 요구사항에 맞게 수정
         if held_piece:
-            # 홀드된 블록과 현재 블록 교체
-            result["current_piece"], result["held_piece"] = held_piece, current_piece
+            # 홀드된 블록이 있는 경우
+            if clear_hold and skip_store:
+                # 홀드된 블록을 현재 블록으로 가져오고, 홀드 공간은 비우기
+                result["current_piece"] = held_piece
+                result["held_piece"] = None
+                result["next_piece"] = next_piece
+            elif clear_hold:
+                # 홀드된 블록을 현재 블록으로 가져오고, 현재 블록을 홀드에 저장
+                result["current_piece"] = held_piece
+                result["held_piece"] = current_piece
+            elif skip_store:
+                # 홀드된 블록을 현재 블록으로 가져오고, 현재 블록은 저장하지 않음
+                result["current_piece"] = held_piece
+                # held_piece는 변경하지 않음
+            else:
+                # 기본 동작: 홀드된 블록과 현재 블록 교체
+                result["current_piece"], result["held_piece"] = held_piece, current_piece
         else:
-            # 현재 블록을 홀드하고 새 블록 생성
-            result["held_piece"] = current_piece
-            result["current_piece"] = next_piece
-            result["next_piece"] = generate_piece()
+            # 홀드된 블록이 없는 경우 (첫 홀드)
+            if skip_store:
+                # 현재 블록을 홀드에 저장하지 않고, 다음 블록을 현재 블록으로
+                result["current_piece"] = next_piece
+                result["next_piece"] = generate_piece()
+                # held_piece는 변경하지 않음 (None 유지)
+            else:
+                # 기본 동작: 현재 블록을 홀드하고 새 블록 생성
+                result["held_piece"] = current_piece
+                result["current_piece"] = next_piece
+                result["next_piece"] = generate_piece()
         
         # 홀드 사용 표시 - 블록이 바닥에 닿을 때까지 다시 사용 불가
         result["can_hold"] = False
