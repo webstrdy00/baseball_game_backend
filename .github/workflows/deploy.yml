@@ -55,6 +55,11 @@ jobs:
             echo "REFRESH_TOKEN_EXPIRE_DAYS=${{ secrets.REFRESH_TOKEN_EXPIRE_DAYS }}" >> .env
             echo "CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}" >> .env
             echo "USE_HTTPS=${{ secrets.USE_HTTPS }}" >> .env
+            echo "ENVIRONMENT=production" >> .env
+            echo "KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}" >> .env
+            echo "KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}" >> .env
+            echo "KAKAO_REDIRECT_URI=${{ secrets.KAKAO_REDIRECT_URI }}" >> .env
+            echo "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" >> .env
 
             # 도커 이미지 가져오기
             docker pull ${{ secrets.DOCKER_USERNAME }}/baseball-game:latest
