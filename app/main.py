@@ -3,16 +3,34 @@ import os
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from .database import Base, engine
+from .database import Base, engine, test_connection
 from .routers import game, auth, tetris
 from .middleware.auth import auth_middleware
 from dotenv import load_dotenv
 import time
+import logging
+
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-# DB 테이블 생성
-Base.metadata.create_all(bind=engine)
+# 데이터베이스 연결 테스트
+logger.info("애플리케이션 시작: 데이터베이스 연결 테스트 중...")
+db_connected = test_connection()
+if not db_connected:
+    logger.warning("데이터베이스 연결에 실패했습니다. 일부 기능이 작동하지 않을 수 있습니다.")
+else:
+    logger.info("데이터베이스 연결이 정상적으로 확인되었습니다.")
+
+try:
+    # DB 테이블 생성
+    logger.info("데이터베이스 테이블 생성 중...")
+    Base.metadata.create_all(bind=engine)
+    logger.info("데이터베이스 테이블 생성 완료")
+except Exception as e:
+    logger.error(f"데이터베이스 테이블 생성 실패: {str(e)}")
 
 app = FastAPI(
     title="Baseball Score API",
@@ -22,6 +40,7 @@ app = FastAPI(
 
 # CORS 설정을 .env에서 가져오기
 origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+logger.info(f"CORS 허용 도메인: {origins}")
 
 # CORS 미들웨어 추가
 app.add_middleware(
@@ -44,7 +63,7 @@ app.include_router(tetris.router, tags=["tetris"])
 
 # 카카오 OAuth 설정 확인
 if not os.getenv("KAKAO_CLIENT_ID"):
-    print("경고: KAKAO_CLIENT_ID가 설정되지 않았습니다. 카카오 로그인이 작동하지 않을 수 있습니다.")
+    logger.warning("KAKAO_CLIENT_ID가 설정되지 않았습니다. 카카오 로그인이 작동하지 않을 수 있습니다.")
 
 # 미들웨어 설정
 @app.middleware("http")
@@ -69,4 +88,11 @@ def read_root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "message": "서버가 정상적으로 실행 중입니다."}
+    # 데이터베이스 연결 상태 확인
+    db_status = "connected" if test_connection() else "disconnected"
+    return {
+        "status": "ok", 
+        "message": "서버가 정상적으로 실행 중입니다.",
+        "database": db_status,
+        "environment": os.getenv("ENVIRONMENT", "development")
+    }
