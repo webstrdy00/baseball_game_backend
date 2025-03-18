@@ -214,11 +214,16 @@ def create_social_user(db: Session, user: schemas.SocialUserCreate):
     Returns:
         생성된 사용자
     """
+    # 랜덤한 비밀번호 생성 (32자)
+    random_password = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+    hashed_password = get_password_hash(random_password)
+    
     db_user = models.User(
         username=user.username,
         email=user.email,
         social_id=user.social_id,
         social_type=user.social_type,
+        hashed_password=hashed_password,
         is_active=True
     )
     db.add(db_user)

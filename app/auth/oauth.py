@@ -147,8 +147,8 @@ async def process_kakao_login(code: str, db: Session) -> schemas.LoginResponse:
             user = crud.create_social_user(db, user=social_user)
     
     # JWT 토큰 생성
-    access_token = create_access_token(data={"sub": user.username, "user_id": user.id})
-    refresh_token = create_refresh_token(data={"sub": user.username, "user_id": user.id})
+    access_token = create_access_token(data={"sub": user.email, "id": user.id})
+    refresh_token = create_refresh_token(data={"sub": user.email, "id": user.id})
     
     return schemas.LoginResponse(
         user=schemas.UserResponse(

@@ -1,15 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Cookie
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Cookie, Query
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from .. import models, crud, schemas
 from ..database import get_db
-from ..auth.utils import SECRET_KEY, ALGORITHM, get_current_user
+from ..auth.utils import SECRET_KEY, ALGORITHM, get_current_user, create_access_token, create_refresh_token
 from datetime import datetime, timedelta, UTC
 from typing import Optional
 import os
-from ..auth.utils import create_access_token, create_refresh_token, verify_token
+from ..auth.utils import verify_token
 from ..auth.oauth import process_kakao_login
+from fastapi.responses import RedirectResponse
+import urllib.parse
+import base64
+import json
+import logging
+
+# 카카오 OAuth 설정
+KAKAO_CLIENT_ID = os.getenv("KAKAO_CLIENT_ID", "")
+KAKAO_REDIRECT_URI = os.getenv("KAKAO_REDIRECT_URI", "")
 
 router = APIRouter(
     tags=["인증"],
@@ -31,20 +40,20 @@ def signup_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 """
 사용자 로그인 엔드포인트 
-- 일반 JSON 요청으로 로그인
+- JSON 요청으로 로그인
 - 액세스 토큰은 헤더에 설정
 - 리프레시 토큰은 쿠키에 설정
 """
 @router.post("/login", response_model=schemas.LoginResponse)
 async def login(
     response: Response,
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    login_data: schemas.LoginRequest,
     db: Session = Depends(get_db)
 ):
     """
     이메일과 비밀번호로 로그인합니다.
     """
-    user = crud.user.authenticate_user(db, form_data.username, form_data.password)
+    user = crud.user.authenticate_user(db, login_data.email, login_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -99,15 +108,104 @@ async def kakao_login(
         key="refresh_token",
         value=login_response.refresh_token,
         httponly=True,
-        secure=secure,  # HTTPS에서만 전송
-        samesite="lax" if secure else "none",  # CSRF 보호
-        max_age=60 * 60 * 24 * 7,  # 7일
+        secure=secure,
+        samesite="lax",
+        max_age=60 * 60 * 24 * 30,  # 30일
+        path="/auth/refresh"
     )
     
-    # 응답 헤더에 액세스 토큰 설정
-    response.headers["Authorization"] = f"Bearer {login_response.access_token}"
-    
     return login_response
+
+@router.get("/kakao")
+async def kakao_login(
+    success_uri: str = Query(...),
+    error_uri: str = Query(...)
+):
+    """
+    카카오 로그인 페이지로 리다이렉트합니다.
+    성공/실패 시 리다이렉트할 URI를 state 파라미터로 전달합니다.
+    """
+    # 성공 및 에러 URI를 base64로 인코딩하여 state 파라미터에 포함
+    state_data = {
+        "success_uri": success_uri,
+        "error_uri": error_uri
+    }
+    state = base64.urlsafe_b64encode(json.dumps(state_data).encode()).decode()
+    
+    # 카카오 로그인 페이지 URL 생성 (state 파라미터 포함)
+    kakao_auth_url = f"https://kauth.kakao.com/oauth/authorize?client_id={KAKAO_CLIENT_ID}&redirect_uri={KAKAO_REDIRECT_URI}&response_type=code&state={state}"
+    
+    return RedirectResponse(url=kakao_auth_url)
+
+@router.get("/kakao/callback")
+async def kakao_callback(
+    response: Response,
+    code: str = Query(None),
+    error: str = Query(None),
+    state: str = Query(None),
+    db: Session = Depends(get_db)
+):
+    """
+    카카오 로그인 콜백 처리.
+    인증 코드를 받아 로그인 처리 후 프론트엔드로 토큰을 전달합니다.
+    """
+    # 디버깅을 위한 로그 출력
+    logger = logging.getLogger("uvicorn")
+    logger.info(f"Kakao callback received. Code: {code[:10]}... State: {state[:30]}...")
+    
+    # state에서 리다이렉트 URI 디코딩
+    success_uri = "/"
+    error_uri = "/error"
+    
+    if state:
+        try:
+            state_data = json.loads(base64.urlsafe_b64decode(state).decode())
+            success_uri = state_data.get("success_uri", success_uri)
+            error_uri = state_data.get("error_uri", error_uri)
+            logger.info(f"Decoded state. Success URI: {success_uri}, Error URI: {error_uri}")
+        except Exception as e:
+            logger.error(f"Failed to decode state: {str(e)}")
+            # state 디코딩 실패 시 기본값 사용
+            pass
+    
+    # 오류가 있으면 에러 페이지로 리다이렉트
+    if error:
+        logger.error(f"Kakao error: {error}")
+        error_message = urllib.parse.quote(error)
+        return RedirectResponse(url=f"{error_uri}?error={error_message}")
+    
+    try:
+        # 카카오 로그인 처리
+        logger.info("Processing Kakao login...")
+        login_response = await process_kakao_login(code, db)
+        logger.info(f"Kakao login successful. User ID: {login_response.user.id}")
+        
+        # 리프레시 토큰을 쿠키에 설정
+        secure = os.getenv("ENVIRONMENT", "development") == "production"
+        response.set_cookie(
+            key="refresh_token",
+            value=login_response.refresh_token,
+            httponly=True,
+            secure=secure,
+            samesite="lax",
+            max_age=60 * 60 * 24 * 30,  # 30일
+            path="/auth/refresh"
+        )
+        
+        # 성공 URI로 리다이렉트 (해시 프래그먼트를 사용하여 토큰 전달)
+        redirect_url = f"{success_uri}#access_token={login_response.access_token}"
+        logger.info(f"Redirecting to: {success_uri}#access_token=...")
+        return RedirectResponse(url=redirect_url)
+        
+    except Exception as e:
+        # 상세한 오류 정보 로깅
+        import traceback
+        logger.error(f"Kakao login error: {str(e)}")
+        logger.error(traceback.format_exc())
+        
+        # 오류 발생 시 에러 페이지로 리다이렉트
+        error_message = urllib.parse.quote(str(e))
+        return RedirectResponse(url=f"{error_uri}?error={error_message}")
 
 """
 로그아웃 엔드포인트

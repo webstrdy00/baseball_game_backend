@@ -74,7 +74,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         user_id: int = payload.get("id")
         if email is None or user_id is None:
             raise credentials_exception
-        token_data = schemas.TokenData(username=email, user_id=user_id)  # 여기서는 username 필드를 그대로 사용
+        token_data = schemas.TokenData(email=email, user_id=user_id)  # email 필드 사용
     except JWTError:
         raise credentials_exception
     
@@ -162,9 +162,9 @@ def get_current_user_from_cookie(
     
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        email: str = payload.get("sub")  # username 대신 email
         user_id: int = payload.get("id")
-        if username is None or user_id is None:
+        if email is None or user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="유효하지 않은 인증 정보",
@@ -185,7 +185,7 @@ def get_current_user_from_cookie(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    return user 
+    return user
 
 def verify_token(token: str) -> Optional[Dict[str, Any]]:
     """

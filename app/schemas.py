@@ -20,9 +20,10 @@ class UserResponse(UserBase):
         "from_attributes": True
     }
 
-# 로그인 요청 스키마
+# 로그인 관련 스키마
 class LoginRequest(BaseModel):
-    email: str  # username에서 email로 변경
+    """로그인 요청 스키마"""
+    email: str
     password: str
 
 # 로그인 응답 스키마 추가
@@ -43,7 +44,7 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 class TokenData(BaseModel):
-    username: str | None = None
+    email: str | None = None
     user_id: int | None = None
     
 # 게임 생성 시 요청 바디
